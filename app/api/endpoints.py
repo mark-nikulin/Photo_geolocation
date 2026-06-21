@@ -25,6 +25,10 @@ settings = get_settings()
 router = APIRouter()
 geolocation_service = GeolocationService()
 
+# Время старта сервера (вынесено на уровень модуля, не хранится как атрибут функции)
+import time as _time
+_server_start_time = _time.time()
+
 
 @router.post("/upload", response_model=GeolocationResponse)
 async def upload_image(
@@ -142,14 +146,9 @@ async def batch_upload(
 
 @router.get("/health", response_model=HealthCheck)
 async def health_check():
-    import time
     from datetime import datetime
 
-    start_time = getattr(health_check, 'start_time', time.time())
-    if not hasattr(health_check, 'start_time'):
-        health_check.start_time = start_time
-
-    uptime = int(time.time() - start_time)
+    uptime = int(_time.time() - _server_start_time)
 
     services = {
         "vision_api": "available" if geolocation_service.vision_service.is_available() else "unavailable",

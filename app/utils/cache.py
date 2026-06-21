@@ -20,6 +20,9 @@ class CacheManager:
 
     async def connect(self) -> None:
         try:
+            if not settings.redis_url:
+                logger.info("Redis URL not configured, using in-memory cache")
+                return
             self.redis_client = redis.from_url(settings.redis_url)
             await self.redis_client.ping()
             logger.info("Redis connected successfully")

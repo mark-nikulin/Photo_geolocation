@@ -1,9 +1,15 @@
 import asyncio
 from typing import List, Dict, Any, Optional
 import httpx
-import googlemaps
 from geopy.geocoders import Nominatim
 import structlog
+
+try:
+    import googlemaps
+    _googlemaps_available = True
+except ImportError:
+    googlemaps = None  # type: ignore
+    _googlemaps_available = False
 
 from app.models.schemas import LocationHypothesis, DataSource
 from app.core.config import get_settings
@@ -20,12 +26,14 @@ class GeocodingService:
         self._initialize_clients()
 
     def _initialize_clients(self) -> None:
-        if settings.google_maps_api_key:
+        if settings.google_maps_api_key and _googlemaps_available:
             try:
                 self.google_maps_client = googlemaps.Client(key=settings.google_maps_api_key)
                 logger.info("Google Maps client initialized")
             except Exception as e:
                 logger.error("Failed to initialize Google Maps client", error=str(e))
+        elif settings.google_maps_api_key and not _googlemaps_available:
+            logger.warning("googlemaps package not installed — Google Maps geocoding disabled. Install with: pip install googlemaps")
 
         try:
             self.nominatim_client = Nominatim(
@@ -187,6 +195,8 @@ class GeocodingService:
             logger.error("LocationIQ geocoding error", error=str(e))
             return []
 
+        return []
+
     async def _geocode_opencage(self, query: str) -> List[LocationHypothesis]:
         if not settings.opencage_api_key:
             return []
@@ -238,6 +248,8 @@ class GeocodingService:
         except Exception as e:
             logger.error("OpenCage geocoding error", error=str(e))
             return []
+
+        return []
 
     async def _geocode_nominatim(self, query: str) -> List[LocationHypothesis]:
         if not self.nominatim_client:

@@ -2,9 +2,9 @@ import pytest
 import asyncio
 from pathlib import Path
 from typing import AsyncGenerator
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.database import Base, get_db
@@ -14,9 +14,11 @@ settings = get_settings()
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
+# StaticPool нужен для SQLite в тестах, чтобы все соединения шли к одной БД
 engine = create_async_engine(
     TEST_DATABASE_URL,
-    poolclass=NullPool,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
 
 TestingSessionLocal = async_sessionmaker(
@@ -48,12 +50,16 @@ async def db_session(init_test_db) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    def override_get_db():
-        return db_session
+    async def override_get_db():
+        yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    # httpx >= 0.23 требует transport=ASGITransport для тестирования FastAPI
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test"
+    ) as client:
         yield client
 
     app.dependency_overrides.clear()
@@ -66,4 +72,5 @@ def sample_image_path() -> Path:
 
 @pytest.fixture
 def sample_image_bytes() -> bytes:
+    # Минимальный валидный PNG (1x1 pixel)
     return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde'

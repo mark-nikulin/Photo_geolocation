@@ -1,0 +1,4 @@
+[tool.pyrefly]
+python_interpreter = ".venv/bin/python"
+project_includes = ["app", "tests"]
+project_excludes = [".venv", "__pycache__", "scripts"]

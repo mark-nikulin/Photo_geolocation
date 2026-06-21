@@ -6,12 +6,10 @@ build-backend = "poetry.core.masonry.api"
 name = "photo-geolocation"
 version = "1.0.0"
 description = "AI-powered photo geolocation service using landmark detection and geocoding"
-authors = ["Hackathon Team <team@example.com>"]
+authors = ["Photo Geolocation Contributors"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/username/photo-geolocation"
-repository = "https://github.com/username/photo-geolocation"
-keywords = ["geolocation", "ai", "computer-vision", "fastapi", "hackathon"]
+keywords = ["geolocation", "ai", "computer-vision", "fastapi"]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -35,6 +33,7 @@ celery = "^5.3.4"
 prometheus-client = "^0.19.0"
 structlog = "^23.2.0"
 pydantic-settings = "^2.1.0"
+aiosqlite = "^0.19.0"  # SQLite async driver for local development
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

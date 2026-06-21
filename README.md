@@ -648,10 +648,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 📧 **Email**: support@photo-geolocation.com
-- 🐛 **Issues**: [GitHub Issues](https://github.com/username/photo-geolocation/issues)
-- 📖 **Wiki**: [Documentation Wiki](https://github.com/username/photo-geolocation/wiki)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/username/photo-geolocation/discussions)
+- 🐛 **Issues**: Open an issue in the repository
+- 📖 **Documentation**: See `/docs` endpoint after starting the server
 
 ---
 

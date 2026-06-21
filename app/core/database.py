@@ -8,10 +8,14 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+# SQLite требует check_same_thread=False, для PostgreSQL это не нужно
+_is_sqlite = settings.database_url.startswith("sqlite")
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
-    future=True
+    future=True,
+    connect_args={"check_same_thread": False} if _is_sqlite else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(

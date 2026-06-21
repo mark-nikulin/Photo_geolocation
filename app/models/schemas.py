@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -70,7 +70,7 @@ class GeolocationResponse(BaseModel):
     image_metadata: Optional[ImageMetadata] = None
     processing_metadata: Optional[ProcessingMetadata] = None
     error_message: Optional[str] = None
-    processed_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class HealthCheck(BaseModel):

@@ -1,5 +1,13 @@
+import asyncio
 from typing import List, Dict, Any, Optional
-from google.cloud import vision
+
+try:
+    from google.cloud import vision
+    _vision_available = True
+except ImportError:
+    vision = None  # type: ignore
+    _vision_available = False
+
 import structlog
 
 from app.models.schemas import LocationHypothesis, DataSource
@@ -15,6 +23,12 @@ class VisionService:
         self._initialize_client()
 
     def _initialize_client(self) -> None:
+        if not _vision_available:
+            logger.warning(
+                "google-cloud-vision package not installed — Vision API disabled. "
+                "Install with: pip install google-cloud-vision"
+            )
+            return
         try:
             if settings.google_cloud_credentials_path:
                 self.client = vision.ImageAnnotatorClient.from_service_account_file(
@@ -41,7 +55,10 @@ class VisionService:
                 content = image_file.read()
 
             image = vision.Image(content=content)
-            response = self.client.landmark_detection(image=image)
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, lambda: self.client.landmark_detection(image=image)
+            )
 
             if response.error.message:
                 logger.error("Vision API error", error=response.error.message)
@@ -78,7 +95,10 @@ class VisionService:
                 content = image_file.read()
 
             image = vision.Image(content=content)
-            response = self.client.text_detection(image=image)
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, lambda: self.client.text_detection(image=image)
+            )
 
             if response.error.message:
                 logger.error("Vision API error", error=response.error.message)
@@ -105,7 +125,10 @@ class VisionService:
                 content = image_file.read()
 
             image = vision.Image(content=content)
-            response = self.client.object_localization(image=image)
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, lambda: self.client.object_localization(image=image)
+            )
 
             if response.error.message:
                 logger.error("Vision API error", error=response.error.message)
