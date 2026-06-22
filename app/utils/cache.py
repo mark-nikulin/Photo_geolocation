@@ -1,8 +1,9 @@
+import hashlib
 import json
 import pickle
-import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
+
 import redis.asyncio as redis
 import structlog
 
@@ -13,7 +14,7 @@ settings = get_settings()
 
 
 class CacheManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.redis_client: Optional[redis.Redis] = None
         self.memory_cache: Dict[str, Dict[str, Any]] = {}
         self.ttl = settings.cache_ttl
@@ -50,6 +51,8 @@ class CacheManager:
             if self.redis_client:
                 data = await self.redis_client.get(key)
                 if data:
+                    if isinstance(data, str):
+                        data = data.encode()
                     return pickle.loads(data)
 
             cached_item = self.memory_cache.get(key)
@@ -74,7 +77,7 @@ class CacheManager:
 
             self.memory_cache[key] = {
                 "value": value,
-                "expires_at": datetime.now() + timedelta(seconds=ttl)
+                "expires_at": datetime.now() + timedelta(seconds=ttl),
             }
 
             return True
@@ -107,9 +110,9 @@ class CacheManager:
             return False
 
     async def get_stats(self) -> Dict[str, Any]:
-        stats = {
+        stats: Dict[str, Any] = {
             "memory_cache_size": len(self.memory_cache),
-            "redis_connected": self.redis_client is not None
+            "redis_connected": self.redis_client is not None,
         }
 
         if self.redis_client:

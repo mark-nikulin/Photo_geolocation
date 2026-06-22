@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 import pytest
 from httpx import AsyncClient
-from unittest.mock import patch, Mock
-from app.models.schemas import LocationHypothesis, DataSource
+
+from app.models.schemas import DataSource, LocationHypothesis
 
 
 class TestAPIEndpoints:
@@ -53,17 +55,18 @@ class TestAPIEndpoints:
         assert "not allowed" in response.json()["detail"]
 
     @pytest.mark.asyncio
-    @patch('app.services.geolocation_service.GeolocationService.process_image')
+    @patch("app.services.geolocation_service.GeolocationService.process_image")
     async def test_upload_valid_image(self, mock_process, client: AsyncClient):
+        from datetime import datetime, timezone
+
         from app.models.schemas import GeolocationResponse
-        from datetime import datetime
 
         mock_hypothesis = LocationHypothesis(
             latitude=40.7128,
             longitude=-74.0060,
             confidence=0.9,
             source=DataSource.LANDMARK_DETECTION,
-            description="Test landmark"
+            description="Test landmark",
         )
 
         mock_response = GeolocationResponse(
@@ -71,7 +74,7 @@ class TestAPIEndpoints:
             request_id="test-123",
             hypotheses=[mock_hypothesis],
             best_guess=mock_hypothesis,
-            processed_at=datetime.utcnow()
+            processed_at=datetime.now(timezone.utc),
         )
 
         mock_process.return_value = mock_response
@@ -95,17 +98,18 @@ class TestAPIEndpoints:
         assert "too large" in response.json()["detail"].lower()
 
     @pytest.mark.asyncio
-    @patch('app.services.geolocation_service.GeolocationService.process_image')
+    @patch("app.services.geolocation_service.GeolocationService.process_image")
     async def test_batch_upload(self, mock_process, client: AsyncClient):
+        from datetime import datetime, timezone
+
         from app.models.schemas import GeolocationResponse
-        from datetime import datetime
 
         mock_hypothesis = LocationHypothesis(
             latitude=40.7128,
             longitude=-74.0060,
             confidence=0.9,
             source=DataSource.LANDMARK_DETECTION,
-            description="Test landmark"
+            description="Test landmark",
         )
 
         mock_response = GeolocationResponse(
@@ -113,14 +117,14 @@ class TestAPIEndpoints:
             request_id="test-123",
             hypotheses=[mock_hypothesis],
             best_guess=mock_hypothesis,
-            processed_at=datetime.utcnow()
+            processed_at=datetime.now(timezone.utc),
         )
 
         mock_process.return_value = mock_response
 
         files = [
             ("files", ("test1.jpg", b"fake image data 1", "image/jpeg")),
-            ("files", ("test2.jpg", b"fake image data 2", "image/jpeg"))
+            ("files", ("test2.jpg", b"fake image data 2", "image/jpeg")),
         ]
 
         response = await client.post("/batch-upload", files=files)

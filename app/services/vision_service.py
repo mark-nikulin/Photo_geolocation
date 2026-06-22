@@ -1,8 +1,9 @@
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 try:
     from google.cloud import vision
+
     _vision_available = True
 except ImportError:
     vision = None  # type: ignore
@@ -10,15 +11,15 @@ except ImportError:
 
 import structlog
 
-from app.models.schemas import LocationHypothesis, DataSource
 from app.core.config import get_settings
+from app.models.schemas import DataSource, LocationHypothesis
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
 
 class VisionService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.client: Optional[vision.ImageAnnotatorClient] = None
         self._initialize_client()
 
@@ -51,13 +52,15 @@ class VisionService:
             return []
 
         try:
-            with open(image_path, 'rb') as image_file:
+            with open(image_path, "rb") as image_file:
                 content = image_file.read()
 
+            client = self.client
+            assert client is not None
             image = vision.Image(content=content)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
-                None, lambda: self.client.landmark_detection(image=image)
+                None, lambda: client.landmark_detection(image=image)
             )
 
             if response.error.message:
@@ -74,7 +77,7 @@ class VisionService:
                             confidence=landmark.score,
                             source=DataSource.LANDMARK_DETECTION,
                             landmark_name=landmark.description,
-                            description=f"Landmark: {landmark.description}"
+                            description=f"Landmark: {landmark.description}",
                         )
                         hypotheses.append(hypothesis)
 
@@ -91,13 +94,15 @@ class VisionService:
             return []
 
         try:
-            with open(image_path, 'rb') as image_file:
+            with open(image_path, "rb") as image_file:
                 content = image_file.read()
 
+            client = self.client
+            assert client is not None
             image = vision.Image(content=content)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
-                None, lambda: self.client.text_detection(image=image)
+                None, lambda: client.text_detection(image=image)
             )
 
             if response.error.message:
@@ -121,13 +126,15 @@ class VisionService:
             return []
 
         try:
-            with open(image_path, 'rb') as image_file:
+            with open(image_path, "rb") as image_file:
                 content = image_file.read()
 
+            client = self.client
+            assert client is not None
             image = vision.Image(content=content)
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(
-                None, lambda: self.client.object_localization(image=image)
+                None, lambda: client.object_localization(image=image)
             )
 
             if response.error.message:
@@ -136,16 +143,18 @@ class VisionService:
 
             objects = []
             for obj in response.localized_object_annotations:
-                objects.append({
-                    'name': obj.name,
-                    'score': obj.score,
-                    'bounding_poly': {
-                        'vertices': [
-                            {'x': vertex.x, 'y': vertex.y}
-                            for vertex in obj.bounding_poly.normalized_vertices
-                        ]
+                objects.append(
+                    {
+                        "name": obj.name,
+                        "score": obj.score,
+                        "bounding_poly": {
+                            "vertices": [
+                                {"x": vertex.x, "y": vertex.y}
+                                for vertex in obj.bounding_poly.normalized_vertices
+                            ]
+                        },
                     }
-                })
+                )
 
             logger.info("Object detection completed", count=len(objects))
             return objects
@@ -158,5 +167,5 @@ class VisionService:
         return {
             "name": "Google Cloud Vision",
             "available": self.is_available(),
-            "features": ["landmark_detection", "text_detection", "object_detection"]
+            "features": ["landmark_detection", "text_detection", "object_detection"],
         }

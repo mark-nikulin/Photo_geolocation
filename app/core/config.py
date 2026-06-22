@@ -1,5 +1,6 @@
 from functools import lru_cache
-from typing import Optional, List
+from typing import List, Optional
+
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
@@ -14,8 +15,7 @@ class Settings(BaseSettings):
 
     # По умолчанию SQLite для локальной разработки без PostgreSQL
     database_url: str = Field(
-        default="sqlite+aiosqlite:///./geolocation.db",
-        validation_alias="DATABASE_URL"
+        default="sqlite+aiosqlite:///./geolocation.db", validation_alias="DATABASE_URL"
     )
     # Redis необязателен — используется in-memory кэш как fallback
     redis_url: Optional[str] = Field(default=None, validation_alias="REDIS_URL")
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # Секретный ключ — может быть сгенерирован по умолчанию для dev
     secret_key: str = Field(
         default="dev-secret-key-change-in-production-32chars!",
-        validation_alias="SECRET_KEY"
+        validation_alias="SECRET_KEY",
     )
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30

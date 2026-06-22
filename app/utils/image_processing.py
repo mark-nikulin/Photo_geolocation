@@ -1,12 +1,12 @@
 import hashlib
-import mimetypes
-from pathlib import Path
-from typing import Dict, Any, Optional, Tuple
 from datetime import datetime
-from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+
 import exifread
 import structlog
+from PIL import Image
+from PIL.ExifTags import TAGS
 
 logger = structlog.get_logger(__name__)
 
@@ -40,7 +40,7 @@ class ImageProcessor:
             "format": "",
             "has_exif": False,
             "has_gps": False,
-            "exif_data": {}
+            "exif_data": {},
         }
 
         try:
@@ -60,14 +60,14 @@ class ImageProcessor:
         return metadata
 
     def _extract_exif_data(self, file_path: Path) -> Dict[str, Any]:
-        exif_data = {}
+        exif_data: Dict[str, Any] = {}
 
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 tags = exifread.process_file(f, details=True)
 
             with Image.open(file_path) as img:
-                if hasattr(img, '_getexif') and img._getexif():
+                if hasattr(img, "_getexif") and img._getexif():
                     exif = img._getexif()
                     for tag_id, value in exif.items():
                         tag = TAGS.get(tag_id, tag_id)
@@ -91,23 +91,25 @@ class ImageProcessor:
 
     def _extract_gps_coordinates(self, file_path: Path) -> Optional[Dict[str, float]]:
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 tags = exifread.process_file(f, details=True)
 
-            gps_latitude = tags.get('GPS GPSLatitude')
-            gps_latitude_ref = tags.get('GPS GPSLatitudeRef')
-            gps_longitude = tags.get('GPS GPSLongitude')
-            gps_longitude_ref = tags.get('GPS GPSLongitudeRef')
+            gps_latitude = tags.get("GPS GPSLatitude")
+            gps_latitude_ref = tags.get("GPS GPSLatitudeRef")
+            gps_longitude = tags.get("GPS GPSLongitude")
+            gps_longitude_ref = tags.get("GPS GPSLongitudeRef")
 
-            if not all([gps_latitude, gps_latitude_ref, gps_longitude, gps_longitude_ref]):
+            if not (
+                gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref
+            ):
                 return None
 
             lat = self._convert_to_degrees(gps_latitude.values)
-            if gps_latitude_ref.values[0] != 'N':
+            if gps_latitude_ref.values[0] != "N":
                 lat = -lat
 
             lon = self._convert_to_degrees(gps_longitude.values)
-            if gps_longitude_ref.values[0] != 'E':
+            if gps_longitude_ref.values[0] != "E":
                 lon = -lon
 
             return {"latitude": lat, "longitude": lon}
@@ -116,30 +118,30 @@ class ImageProcessor:
             logger.error("Error extracting GPS", error=str(e))
             return None
 
-    def _convert_to_degrees(self, value):
+    def _convert_to_degrees(self, value: Any) -> float:
         d, m, s = value
-        return float(d) + float(m)/60.0 + float(s)/3600.0
+        return float(d) + float(m) / 60.0 + float(s) / 3600.0
 
     def _extract_camera_info(self, tags: Dict) -> Dict[str, Any]:
-        camera_info = {}
+        camera_info: Dict[str, Any] = {}
 
-        if 'Image Make' in tags:
-            camera_info['make'] = str(tags['Image Make'])
-        if 'Image Model' in tags:
-            camera_info['model'] = str(tags['Image Model'])
-        if 'Image Orientation' in tags:
-            camera_info['orientation'] = int(str(tags['Image Orientation']))
+        if "Image Make" in tags:
+            camera_info["make"] = str(tags["Image Make"])
+        if "Image Model" in tags:
+            camera_info["model"] = str(tags["Image Model"])
+        if "Image Orientation" in tags:
+            camera_info["orientation"] = int(str(tags["Image Orientation"]))
 
         return camera_info
 
     def _extract_datetime_info(self, tags: Dict) -> Optional[datetime]:
-        datetime_tags = ['EXIF DateTimeOriginal', 'EXIF DateTime', 'Image DateTime']
+        datetime_tags = ["EXIF DateTimeOriginal", "EXIF DateTime", "Image DateTime"]
 
         for tag in datetime_tags:
             if tag in tags:
                 try:
                     date_str = str(tags[tag])
-                    return datetime.strptime(date_str, '%Y:%m:%d %H:%M:%S')
+                    return datetime.strptime(date_str, "%Y:%m:%d %H:%M:%S")
                 except ValueError:
                     continue
 
@@ -147,7 +149,7 @@ class ImageProcessor:
 
     def generate_hash(self, file_path: Path) -> str:
         try:
-            with open(file_path, 'rb') as f:
+            with open(file_path, "rb") as f:
                 return hashlib.sha256(f.read()).hexdigest()
         except Exception:
             return ""

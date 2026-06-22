@@ -1,14 +1,15 @@
 from contextlib import asynccontextmanager
+
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
+from app.api.endpoints import router
 from app.core.config import get_settings
 from app.core.database import init_db
-from app.api.endpoints import router
 from app.utils.cache import cache_manager
 
 settings = get_settings()
@@ -21,7 +22,7 @@ structlog.configure(
         structlog.processors.StackInfoRenderer(),
         structlog.processors.ExceptionRenderer(),
         structlog.processors.UnicodeDecoder(),
-        structlog.processors.JSONRenderer()
+        structlog.processors.JSONRenderer(),
     ],
     logger_factory=structlog.stdlib.LoggerFactory(),
     wrapper_class=structlog.stdlib.BoundLogger,
@@ -31,8 +32,10 @@ structlog.configure(
 logger = structlog.get_logger(__name__)
 
 
+from typing import Any
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Any:
     logger.info("Starting Photo Geolocation Service", version=settings.version)
 
     await init_db()
@@ -55,7 +58,7 @@ app = FastAPI(
     This service determines geographic coordinates from photographs using:
     - **EXIF GPS Data** extraction
     - **AI Landmark Recognition** via Google Cloud Vision
-    - **OCR + Geocoding** for text-based location hints  
+    - **OCR + Geocoding** for text-based location hints
     - **Multi-provider Geocoding** (Google Maps, LocationIQ, OpenCage, Nominatim)
 
     ## Features
@@ -72,7 +75,7 @@ app = FastAPI(
     """,
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -83,10 +86,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]
-)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 # Роутер подключён один раз без префикса, чтобы /upload, /health, /demo работали напрямую
 app.include_router(router)
@@ -98,21 +98,22 @@ except RuntimeError:
 
 
 @app.get("/")
-async def root():
+async def root() -> RedirectResponse:
     return RedirectResponse(url="/demo")
 
 
 @app.get("/favicon.ico")
-async def favicon():
+async def favicon() -> RedirectResponse:
     return RedirectResponse(url="/static/favicon.ico")
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host=settings.host,
         port=settings.port,
         reload=settings.debug,
-        log_level="info"
+        log_level="info",
     )
