@@ -75,9 +75,7 @@ Below is an illustration of how the application processes an image step-by-step:
 ### Input Photo
 A user uploads an image containing a famous bridge (e.g., Lomonosov Bridge in Saint Petersburg).
 
-```
-[ Uploaded Image: Lomonosov Bridge ]
-```
+![Lomonosov Bridge](docs/lomonosov_bridge.png)
 
 ### Processing Pipeline
 ```mermaid
