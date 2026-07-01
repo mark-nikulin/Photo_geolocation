@@ -1,17 +1,9 @@
 import asyncio
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import httpx
 import structlog
 from geopy.geocoders import Nominatim
-
-try:
-    import googlemaps
-
-    _googlemaps_available = True
-except ImportError:
-    googlemaps = None  # type: ignore
-    _googlemaps_available = False
 
 from app.core.config import get_settings
 from app.models.schemas import DataSource, LocationHypothesis
@@ -23,24 +15,10 @@ settings = get_settings()
 
 class GeocodingService:
     def __init__(self) -> None:
-        self.google_maps_client: Optional[googlemaps.Client] = None
         self.nominatim_client: Optional[Nominatim] = None
         self._initialize_clients()
 
     def _initialize_clients(self) -> None:
-        if settings.google_maps_api_key and _googlemaps_available:
-            try:
-                self.google_maps_client = googlemaps.Client(
-                    key=settings.google_maps_api_key
-                )
-                logger.info("Google Maps client initialized")
-            except Exception as e:
-                logger.error("Failed to initialize Google Maps client", error=str(e))
-        elif settings.google_maps_api_key and not _googlemaps_available:
-            logger.warning(
-                "googlemaps package not installed — Google Maps geocoding disabled. Install with: pip install googlemaps"
-            )
-
         try:
             self.nominatim_client = Nominatim(
                 user_agent="photo_geolocation/1.0", timeout=10
@@ -57,10 +35,6 @@ class GeocodingService:
 
             for candidate in location_candidates:
                 candidate_hypotheses = []
-
-                if self.google_maps_client:
-                    google_results = await self._geocode_google_maps(candidate)
-                    candidate_hypotheses.extend(google_results)
 
                 locationiq_results = await self._geocode_locationiq(candidate)
                 candidate_hypotheses.extend(locationiq_results)
@@ -107,48 +81,6 @@ class GeocodingService:
 
         candidates = [c.strip() for c in candidates if c.strip() and len(c.strip()) > 2]
         return list(set(candidates))
-
-    async def _geocode_google_maps(self, query: str) -> List[LocationHypothesis]:
-        if not self.google_maps_client:
-            return []
-
-        try:
-            results = self.google_maps_client.geocode(query)
-            hypotheses = []
-
-            for result in results:
-                geometry = result.get("geometry", {})
-                location = geometry.get("location", {})
-
-                if "lat" in location and "lng" in location:
-                    hypothesis = LocationHypothesis(
-                        latitude=location["lat"],
-                        longitude=location["lng"],
-                        confidence=0.8,
-                        source=DataSource.OCR_GEOCODING,
-                        description=result.get("formatted_address", query),
-                        address=result.get("formatted_address"),
-                    )
-
-                    for component in result.get("address_components", []):
-                        types = component.get("types", [])
-                        if "country" in types:
-                            hypothesis.country = component.get("long_name")
-                            hypothesis.country_code = component.get("short_name")
-                        elif "administrative_area_level_1" in types:
-                            hypothesis.admin_area = component.get("long_name")
-                        elif "locality" in types:
-                            hypothesis.locality = component.get("long_name")
-                        elif "postal_code" in types:
-                            hypothesis.postal_code = component.get("long_name")
-
-                    hypotheses.append(hypothesis)
-
-            return hypotheses
-
-        except Exception as e:
-            logger.error("Google Maps geocoding error", error=str(e))
-            return []
 
     async def _geocode_locationiq(self, query: str) -> List[LocationHypothesis]:
         if not settings.locationiq_api_key:
@@ -260,12 +192,11 @@ class GeocodingService:
             loop = asyncio.get_event_loop()
             client = self.nominatim_client
             assert client is not None
-            locations = await loop.run_in_executor(
-                None,
-                lambda: client.geocode(
-                    query, exactly_one=False, limit=5
-                ),
-            )
+
+            def run_geocode() -> Any:
+                return client.geocode(query, exactly_one=False, limit=5)
+
+            locations: Any = await loop.run_in_executor(None, run_geocode)
 
             hypotheses = []
             if locations:
@@ -304,31 +235,16 @@ class GeocodingService:
     async def reverse_geocode(
         self, latitude: float, longitude: float
     ) -> Optional[LocationHypothesis]:
-        if self.google_maps_client:
-            try:
-                results = self.google_maps_client.reverse_geocode((latitude, longitude))
-                if results:
-                    result = results[0]
-                    return LocationHypothesis(
-                        latitude=latitude,
-                        longitude=longitude,
-                        confidence=0.9,
-                        source=DataSource.REVERSE_GEOCODING,
-                        address=result.get("formatted_address"),
-                        description=f"Reverse geocoded: {result.get('formatted_address')}",
-                    )
-            except Exception as e:
-                logger.error("Google reverse geocoding error", error=str(e))
-
         if self.nominatim_client:
             try:
                 loop = asyncio.get_event_loop()
                 client = self.nominatim_client
                 assert client is not None
-                location = await loop.run_in_executor(
-                    None,
-                    lambda: client.reverse(f"{latitude}, {longitude}"),
-                )
+
+                def run_reverse() -> Any:
+                    return client.reverse(f"{latitude}, {longitude}")
+
+                location: Any = await loop.run_in_executor(None, run_reverse)
 
                 if location:
                     return LocationHypothesis(

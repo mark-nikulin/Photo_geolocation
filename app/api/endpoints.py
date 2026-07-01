@@ -1,7 +1,7 @@
+import time
 import uuid
 from pathlib import Path
-from typing import List, Dict, Any
-import time
+from typing import Any, Dict, List
 
 import aiofiles
 import structlog
@@ -156,7 +156,7 @@ async def health_check() -> HealthCheck:
     uptime = int(time.time() - _server_start_time)
 
     services = {
-        "vision_api": (
+        "gemini_vision": (
             "available"
             if geolocation_service.vision_service.is_available()
             else "unavailable"

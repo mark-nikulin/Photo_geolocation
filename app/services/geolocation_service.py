@@ -78,7 +78,7 @@ class GeolocationService:
                 )
 
             if self.vision_service.is_available():
-                processing_metadata.apis_used.append("google_vision_landmark")
+                processing_metadata.apis_used.append("gemini_vision_landmark")
                 landmark_hypotheses = await self.vision_service.detect_landmarks(
                     str(image_path)
                 )
@@ -86,7 +86,7 @@ class GeolocationService:
                 processing_metadata.landmark_results_count = len(landmark_hypotheses)
 
                 if request.mode.value in ["standard", "comprehensive"]:
-                    processing_metadata.apis_used.append("google_vision_text")
+                    processing_metadata.apis_used.append("gemini_vision_text")
                     texts = await self.vision_service.detect_text(str(image_path))
                     processing_metadata.text_results_count = len(texts)
 
@@ -100,7 +100,7 @@ class GeolocationService:
 
             if request.mode.value == "comprehensive":
                 if self.vision_service.is_available():
-                    processing_metadata.apis_used.append("google_vision_objects")
+                    processing_metadata.apis_used.append("gemini_vision_objects")
                     objects = await self.vision_service.detect_objects(str(image_path))
                     object_hypotheses = await self._process_objects(objects)
                     all_hypotheses.extend(object_hypotheses)

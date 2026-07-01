@@ -100,7 +100,10 @@ class ImageProcessor:
             gps_longitude_ref = tags.get("GPS GPSLongitudeRef")
 
             if not (
-                gps_latitude and gps_latitude_ref and gps_longitude and gps_longitude_ref
+                gps_latitude
+                and gps_latitude_ref
+                and gps_longitude
+                and gps_longitude_ref
             ):
                 return None
 

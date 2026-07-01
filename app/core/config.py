@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     allowed_extensions: List[str] = [".jpg", ".jpeg", ".png", ".webp", ".tiff"]
     upload_path: str = "uploads"
 
+    # Gemini API
+    gemini_api_key: Optional[str] = None
+
     cache_ttl: int = 3600
 
     landmark_confidence_threshold: float = 0.6

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Any
 
 import structlog
 from fastapi import FastAPI
@@ -31,8 +32,6 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-
-from typing import Any
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> Any:
