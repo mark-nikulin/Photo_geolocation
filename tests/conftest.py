@@ -1,14 +1,15 @@
-import pytest
 import asyncio
 from pathlib import Path
 from typing import AsyncGenerator
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.core.database import Base, get_db
 from app.core.config import get_settings
+from app.core.database import Base, get_db
+from app.main import app
 
 settings = get_settings()
 
@@ -57,8 +58,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 
     # httpx >= 0.23 требует transport=ASGITransport для тестирования FastAPI
     async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test"
+        transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
         yield client
 
@@ -73,4 +73,4 @@ def sample_image_path() -> Path:
 @pytest.fixture
 def sample_image_bytes() -> bytes:
     # Минимальный валидный PNG (1x1 pixel)
-    return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde'
+    return b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
